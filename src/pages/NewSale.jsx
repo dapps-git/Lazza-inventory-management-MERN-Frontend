@@ -76,10 +76,66 @@ export default function NewSale() {
   const addLine = (id) => {
     const p = productById[id];
     if (!p) return;
-    setLines((ls) => [...ls, { product: id, qty: '1', sellPrice: String(p.discountedPrice ?? p.price) }]);
+    const unitPrice = p.price || 0;
+    const defaultSell = p.discountedPrice != null ? p.discountedPrice : unitPrice;
+    const defaultDiscount = round2(Math.max(0, unitPrice - defaultSell));
+    setLines((ls) => [
+      ...ls,
+      {
+        product: id,
+        qty: '1',
+        sellPrice: String(defaultSell),
+        discount: defaultDiscount > 0 ? String(defaultDiscount) : '',
+      },
+    ]);
   };
 
-  const update = (i, k, v) => setLines((ls) => ls.map((l, j) => (j === i ? { ...l, [k]: v } : l)));
+  const updateQty = (i, val) => {
+    setLines((ls) => ls.map((l, j) => (j === i ? { ...l, qty: val } : l)));
+  };
+
+  const updateDiscount = (i, val) => {
+    const p = productById[lines[i].product];
+    const unitPrice = p?.price || 0;
+    if (val === '') {
+      setLines((ls) =>
+        ls.map((l, j) => (j === i ? { ...l, discount: '', sellPrice: String(unitPrice) } : l))
+      );
+      return;
+    }
+    const dVal = Number(val);
+    const validD = isNaN(dVal) ? 0 : Math.max(0, dVal);
+    const newSell = round2(Math.max(0, unitPrice - validD));
+    setLines((ls) =>
+      ls.map((l, j) => (j === i ? { ...l, discount: val, sellPrice: String(newSell) } : l))
+    );
+  };
+
+  const updateSellPrice = (i, val) => {
+    const p = productById[lines[i].product];
+    const unitPrice = p?.price || 0;
+    if (val === '') {
+      setLines((ls) =>
+        ls.map((l, j) => (j === i ? { ...l, sellPrice: '', discount: '' } : l))
+      );
+      return;
+    }
+    const sVal = Number(val);
+    const validS = isNaN(sVal) ? unitPrice : Math.max(0, sVal);
+    const newDiscount = round2(Math.max(0, unitPrice - validS));
+    setLines((ls) =>
+      ls.map((l, j) =>
+        j === i
+          ? {
+              ...l,
+              sellPrice: val,
+              discount: newDiscount > 0 ? String(newDiscount) : '',
+            }
+          : l
+      )
+    );
+  };
+
   const removeLine = (i) => setLines((ls) => ls.filter((_, j) => j !== i));
 
   // Calculations
@@ -88,12 +144,25 @@ export default function NewSale() {
     const qty = Number(l.qty) || 0;
     const unitPrice = p?.price || 0;
     const sell = l.sellPrice === '' ? unitPrice : Number(l.sellPrice);
-    const discount = round2(unitPrice - sell);
+    const discount =
+      l.discount !== '' && l.discount !== undefined
+        ? Number(l.discount)
+        : round2(Math.max(0, unitPrice - sell));
     let problem = '';
     if (!Number.isInteger(qty) || qty < 1) problem = 'Enter quantity';
     else if (p && qty > p.quantity) problem = `Only ${p.quantity} in stock`;
-    else if (!Number.isFinite(sell) || sell < 0 || sell > unitPrice) problem = `Price must be ₹0 – ₹${unitPrice}`;
-    return { ...l, p, qty, unitPrice, sell, discount, lineTotal: round2(sell * qty), problem };
+    else if (!Number.isFinite(sell) || sell < 0) problem = `Price cannot be negative`;
+    else if (discount < 0) problem = `Discount cannot be negative`;
+    return {
+      ...l,
+      p,
+      qty,
+      unitPrice,
+      sell: isNaN(sell) ? unitPrice : sell,
+      discount: isNaN(discount) ? 0 : Math.max(0, discount),
+      lineTotal: round2((isNaN(sell) ? unitPrice : sell) * qty),
+      problem,
+    };
   });
 
   const subTotal = round2(rows.reduce((t, r) => t + r.unitPrice * r.qty, 0));
@@ -271,9 +340,9 @@ export default function NewSale() {
                     <div key={r.product} className="p-3.5 space-y-3">
                       <div className="flex items-start justify-between gap-2">
                         <div className="min-w-0 flex-1">
-                          <h4 className="font-bold text-gray-900 text-sm">{r.p?.name}</h4>
-                          <div className="flex items-center gap-2 mt-0.5 text-xs text-gray-500">
-                            <span>Rate: <b>{money(r.unitPrice)}</b></span>
+                          <h4 className="font-bold text-gray-900 text-sm leading-tight">{r.p?.name}</h4>
+                          <div className="flex items-center gap-2 mt-1 text-xs text-gray-500">
+                            <span>MRP: <b className="text-gray-800">{money(r.unitPrice)}</b></span>
                             <span>·</span>
                             <span className={r.p?.quantity < 10 ? 'text-amber-600 font-semibold' : 'text-gray-500'}>
                               Stock: {number(r.p?.quantity)}
@@ -283,7 +352,7 @@ export default function NewSale() {
                         </div>
                         <button
                           type="button"
-                          className="rounded-lg p-2 text-red-500 hover:bg-red-50 active:scale-90 transition"
+                          className="rounded-lg p-2 text-red-500 hover:bg-red-50 active:scale-90 transition shrink-0"
                           onClick={() => removeLine(i)}
                           title="Remove item"
                         >
@@ -291,34 +360,35 @@ export default function NewSale() {
                         </button>
                       </div>
 
-                      <div className="grid grid-cols-2 gap-3 bg-gray-50/80 rounded-xl p-3 border border-gray-100">
+                      {/* 3-column input grid: QTY | DISCOUNT (₹) | SALE RATE (₹) */}
+                      <div className="grid grid-cols-3 gap-2 bg-gray-50/80 rounded-xl p-3 border border-gray-100">
                         <div>
-                          <label className="block text-[11px] font-semibold text-gray-500 mb-1">Quantity</label>
+                          <label className="block text-[11px] font-semibold text-gray-500 mb-1">Qty</label>
                           <div className="flex items-center">
                             <button
                               type="button"
-                              className="flex h-9 w-9 items-center justify-center rounded-l-lg border border-r-0 border-gray-300 bg-white font-bold text-gray-700 active:bg-gray-100"
+                              className="flex h-9 w-7 shrink-0 items-center justify-center rounded-l-lg border border-r-0 border-gray-300 bg-white font-bold text-gray-700 active:bg-gray-100"
                               onClick={() => {
                                 const current = Number(lines[i].qty) || 1;
-                                if (current > 1) update(i, 'qty', String(current - 1));
+                                if (current > 1) updateQty(i, String(current - 1));
                               }}
                             >
                               −
                             </button>
                             <input
-                              className="h-9 w-full border-y border-gray-300 bg-white text-center text-sm font-bold text-gray-900 outline-none"
+                              className="h-9 w-full min-w-0 border-y border-gray-300 bg-white text-center text-xs font-bold text-gray-900 outline-none px-0.5"
                               type="number"
                               min="1"
                               step="1"
                               value={lines[i].qty}
-                              onChange={(e) => update(i, 'qty', e.target.value)}
+                              onChange={(e) => updateQty(i, e.target.value)}
                             />
                             <button
                               type="button"
-                              className="flex h-9 w-9 items-center justify-center rounded-r-lg border border-l-0 border-gray-300 bg-white font-bold text-gray-700 active:bg-gray-100"
+                              className="flex h-9 w-7 shrink-0 items-center justify-center rounded-r-lg border border-l-0 border-gray-300 bg-white font-bold text-gray-700 active:bg-gray-100"
                               onClick={() => {
                                 const current = Number(lines[i].qty) || 0;
-                                update(i, 'qty', String(current + 1));
+                                updateQty(i, String(current + 1));
                               }}
                             >
                               +
@@ -327,23 +397,47 @@ export default function NewSale() {
                         </div>
 
                         <div>
-                          <label className="block text-[11px] font-semibold text-gray-500 mb-1">
-                            Sale Rate (₹) {r.discount > 0 && <span className="text-amber-700">(-{money(r.discount)})</span>}
-                          </label>
-                          <input
-                            className="input h-9 text-sm font-bold"
-                            type="number"
-                            min="0"
-                            step="0.01"
-                            value={lines[i].sellPrice}
-                            onChange={(e) => update(i, 'sellPrice', e.target.value)}
-                          />
+                          <div className="flex items-center justify-between mb-1">
+                            <label className="block text-[11px] font-semibold text-gray-500">Discount</label>
+                            {r.discount > 0 && r.unitPrice > 0 && (
+                              <span className="text-[10px] font-bold text-amber-700">
+                                {Math.round((r.discount / r.unitPrice) * 100)}%
+                              </span>
+                            )}
+                          </div>
+                          <div className="relative">
+                            <span className="absolute left-2 top-2 text-xs font-semibold text-gray-400">₹</span>
+                            <input
+                              className="input h-9 pl-5 pr-1 text-xs font-bold text-amber-900 bg-amber-50/40 border-amber-200 focus:border-amber-500"
+                              type="number"
+                              min="0"
+                              step="0.01"
+                              placeholder="0"
+                              value={lines[i].discount ?? ''}
+                              onChange={(e) => updateDiscount(i, e.target.value)}
+                            />
+                          </div>
+                        </div>
+
+                        <div>
+                          <label className="block text-[11px] font-semibold text-gray-500 mb-1">Sale Rate</label>
+                          <div className="relative">
+                            <span className="absolute left-2 top-2 text-xs font-semibold text-gray-400">₹</span>
+                            <input
+                              className="input h-9 pl-5 pr-1 text-xs font-bold text-gray-900"
+                              type="number"
+                              min="0"
+                              step="0.01"
+                              value={lines[i].sellPrice}
+                              onChange={(e) => updateSellPrice(i, e.target.value)}
+                            />
+                          </div>
                         </div>
                       </div>
 
-                      <div className="flex items-center justify-between pt-1 text-xs">
+                      <div className="flex items-center justify-between pt-0.5 text-xs">
                         <span className="text-gray-500 font-medium">
-                          {r.qty} units × {money(r.sell)} {r.discount > 0 && `(Saved ${money(r.discount * r.qty)})`}
+                          {r.qty} × {money(r.sell)} {r.discount > 0 && <span className="text-amber-700 font-semibold">(Saved {money(r.discount * r.qty)})</span>}
                         </span>
                         <span className="font-bold text-sm text-gray-900">
                           Total: {money(r.lineTotal)}
@@ -360,27 +454,97 @@ export default function NewSale() {
                       <tr>
                         <th>Product</th>
                         <th className="text-right">Unit Rate</th>
-                        <th>Qty</th>
-                        <th>Sale Rate</th>
-                        <th className="text-right">Discount</th>
+                        <th className="text-center w-28">Qty</th>
+                        <th className="w-32">Discount (₹)</th>
+                        <th className="w-32">Sale Rate (₹)</th>
                         <th className="text-right">Total</th>
-                        <th></th>
+                        <th className="w-10"></th>
                       </tr>
                     </thead>
                     <tbody>
                       {rows.map((r, i) => (
-                        <tr key={r.product} className="align-top">
+                        <tr key={r.product} className="align-middle">
                           <td>
                             <div className="font-bold text-gray-900">{r.p?.name}</div>
                             <div className="text-xs text-gray-400">In stock: {number(r.p?.quantity)}</div>
                             {r.problem && <div className="text-xs text-red-600 font-medium">{r.problem}</div>}
                           </td>
-                          <td className="text-right font-medium">{money(r.unitPrice)}</td>
-                          <td><input className="input w-20 text-center font-bold" type="number" min="1" step="1" value={lines[i].qty} onChange={(e) => update(i, 'qty', e.target.value)} /></td>
-                          <td><input className="input w-24 font-bold" type="number" min="0" step="0.01" value={lines[i].sellPrice} onChange={(e) => update(i, 'sellPrice', e.target.value)} /></td>
-                          <td className="text-right text-amber-700 font-semibold">{r.discount > 0 ? money(r.discount * r.qty) : '—'}</td>
+                          <td className="text-right font-medium text-gray-600">{money(r.unitPrice)}</td>
+                          <td>
+                            <div className="flex items-center justify-center">
+                              <button
+                                type="button"
+                                className="h-8 w-7 rounded-l-md border border-r-0 border-gray-300 bg-gray-50 font-bold text-gray-600 hover:bg-gray-100"
+                                onClick={() => {
+                                  const current = Number(lines[i].qty) || 1;
+                                  if (current > 1) updateQty(i, String(current - 1));
+                                }}
+                              >
+                                −
+                              </button>
+                              <input
+                                className="h-8 w-14 border-y border-gray-300 bg-white text-center text-xs font-bold text-gray-900 outline-none"
+                                type="number"
+                                min="1"
+                                step="1"
+                                value={lines[i].qty}
+                                onChange={(e) => updateQty(i, e.target.value)}
+                              />
+                              <button
+                                type="button"
+                                className="h-8 w-7 rounded-r-md border border-l-0 border-gray-300 bg-gray-50 font-bold text-gray-600 hover:bg-gray-100"
+                                onClick={() => {
+                                  const current = Number(lines[i].qty) || 0;
+                                  updateQty(i, String(current + 1));
+                                }}
+                              >
+                                +
+                              </button>
+                            </div>
+                          </td>
+                          <td>
+                            <div className="relative">
+                              <span className="absolute left-2 top-1.5 text-xs font-semibold text-gray-400">₹</span>
+                              <input
+                                className="input h-8 pl-5 text-xs font-bold text-amber-900 bg-amber-50/40 border-amber-200"
+                                type="number"
+                                min="0"
+                                step="0.01"
+                                placeholder="0"
+                                value={lines[i].discount ?? ''}
+                                onChange={(e) => updateDiscount(i, e.target.value)}
+                              />
+                            </div>
+                            {r.discount > 0 && r.unitPrice > 0 && (
+                              <div className="text-[10px] text-amber-700 font-semibold mt-0.5 text-right">
+                                {Math.round((r.discount / r.unitPrice) * 100)}% off
+                              </div>
+                            )}
+                          </td>
+                          <td>
+                            <div className="relative">
+                              <span className="absolute left-2 top-1.5 text-xs font-semibold text-gray-400">₹</span>
+                              <input
+                                className="input h-8 pl-5 text-xs font-bold text-gray-900"
+                                type="number"
+                                min="0"
+                                step="0.01"
+                                value={lines[i].sellPrice}
+                                onChange={(e) => updateSellPrice(i, e.target.value)}
+                              />
+                            </div>
+                          </td>
                           <td className="text-right font-bold text-gray-900">{money(r.lineTotal)}</td>
-                          <td><button className="rounded p-1.5 text-red-500 hover:bg-red-50" onClick={() => removeLine(i)}><Trash2 size={16} /></button></td>
+                          <td className="text-center">
+                            <button
+                              type="button"
+                              className="rounded p-1.5 text-red-500 hover:bg-red-50 active:scale-90 transition"
+                              onClick={() => removeLine(i)}
+                              title="Remove item"
+                            >
+                              <Trash2 size={16} />
+                            </button>
+                          </td>
                         </tr>
                       ))}
                     </tbody>
