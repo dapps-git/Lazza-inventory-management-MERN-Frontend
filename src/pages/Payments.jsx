@@ -41,21 +41,43 @@ export default function Payments() {
 
         <Card title="Pending Outstanding Amounts" className="xl:col-span-2">
           {sm?.pending.length ? (
-            <div className="table-wrap max-h-96 overflow-y-auto">
-              <table className="data-table">
-                <thead><tr><th>Shop</th><th>City</th><th>Phone</th><th className="text-right">Outstanding</th></tr></thead>
-                <tbody>
-                  {sm.pending.map((s) => (
-                    <tr key={s._id}>
-                      <td><Link to={`/shops/${s._id}`} className="text-primary-700 hover:underline">{s.name}</Link></td>
-                      <td>{s.city}</td>
-                      <td>{s.phone}</td>
-                      <td className="text-right font-semibold text-red-600">{money(s.outstandingBalance)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            <>
+              {/* Mobile View */}
+              <div className="divide-y divide-gray-100 sm:hidden max-h-96 overflow-y-auto">
+                {sm.pending.map((s) => (
+                  <div key={s._id} className="p-3.5 flex items-center justify-between gap-3">
+                    <div className="min-w-0 flex-1">
+                      <Link to={`/shops/${s._id}`} className="font-semibold text-primary-700 text-sm hover:underline block truncate">
+                        {s.name}
+                      </Link>
+                      <div className="text-xs text-gray-500 mt-0.5">
+                        {s.city}{s.phone ? ` · ${s.phone}` : ''}
+                      </div>
+                    </div>
+                    <div className="text-right shrink-0">
+                      <div className="font-bold text-red-600 text-sm">{money(s.outstandingBalance)}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Desktop Table */}
+              <div className="hidden sm:block table-wrap max-h-96 overflow-y-auto">
+                <table className="data-table">
+                  <thead><tr><th>Shop</th><th>City</th><th>Phone</th><th className="text-right">Outstanding</th></tr></thead>
+                  <tbody>
+                    {sm.pending.map((s) => (
+                      <tr key={s._id}>
+                        <td><Link to={`/shops/${s._id}`} className="text-primary-700 hover:underline">{s.name}</Link></td>
+                        <td>{s.city}</td>
+                        <td>{s.phone}</td>
+                        <td className="text-right font-semibold text-red-600">{money(s.outstandingBalance)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </>
           ) : summary.loading ? <Loading /> : <Empty text="No pending balances." />}
         </Card>
       </div>
@@ -63,21 +85,37 @@ export default function Payments() {
       <div className="mt-6 grid grid-cols-1 gap-6 xl:grid-cols-3">
         <Card title="Shop-wise Collections (this month)">
           {sm?.shopWise.length ? (
-            <div className="table-wrap max-h-[28rem] overflow-y-auto">
-              <table className="data-table">
-                <thead><tr><th>Shop</th><th className="text-right">Payments</th><th className="text-right">Collected</th></tr></thead>
-                <tbody>
-                  {sm.shopWise.map((s) => (
-                    <tr key={s._id}><td>{s.shopName}</td><td className="text-right">{s.count}</td><td className="text-right font-medium text-green-700">{money(s.total)}</td></tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            <>
+              {/* Mobile View */}
+              <div className="divide-y divide-gray-100 sm:hidden max-h-[28rem] overflow-y-auto">
+                {sm.shopWise.map((s) => (
+                  <div key={s._id} className="p-3.5 flex items-center justify-between">
+                    <div>
+                      <div className="font-semibold text-gray-900 text-sm">{s.shopName}</div>
+                      <div className="text-xs text-gray-400">{s.count} payment{s.count > 1 ? 's' : ''}</div>
+                    </div>
+                    <span className="font-bold text-green-700 text-sm">{money(s.total)}</span>
+                  </div>
+                ))}
+              </div>
+
+              {/* Desktop Table */}
+              <div className="hidden sm:block table-wrap max-h-[28rem] overflow-y-auto">
+                <table className="data-table">
+                  <thead><tr><th>Shop</th><th className="text-right">Payments</th><th className="text-right">Collected</th></tr></thead>
+                  <tbody>
+                    {sm.shopWise.map((s) => (
+                      <tr key={s._id}><td>{s.shopName}</td><td className="text-right">{s.count}</td><td className="text-right font-medium text-green-700">{money(s.total)}</td></tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </>
           ) : <Empty text="No collections this month." />}
         </Card>
 
         <Card title="Payment History" className="xl:col-span-2">
-          <div className="grid grid-cols-1 gap-2 border-b border-gray-100 p-4 sm:grid-cols-4">
+          <div className="grid grid-cols-1 gap-2 border-b border-gray-100 p-3.5 sm:p-4 sm:grid-cols-4">
             <select className="input" value={filters.shop} onChange={setF('shop')}>
               <option value="">All shops</option>
               {shops.data?.map((s) => <option key={s._id} value={s._id}>{s.name}</option>)}
@@ -86,38 +124,64 @@ export default function Payments() {
               <option value="">All methods</option>
               {METHODS.map((m) => <option key={m}>{m}</option>)}
             </select>
-            <input type="date" className="input" value={filters.from} onChange={setF('from')} title="From" />
-            <input type="date" className="input" value={filters.to} onChange={setF('to')} title="To" />
+            <input type="date" className="input" value={filters.from} onChange={setF('from')} title="From date" />
+            <input type="date" className="input" value={filters.to} onChange={setF('to')} title="To date" />
           </div>
           {list.error && <div className="p-4"><ErrorBox text={list.error} /></div>}
           {list.loading && !list.data ? (
             <Loading />
           ) : list.data?.length ? (
-            <div className="table-wrap max-h-[28rem] overflow-y-auto">
-              <table className="data-table">
-                <thead><tr><th>Date</th><th>Shop</th><th className="text-right">Amount</th><th>Method</th><th>Reference</th><th className="text-right">Balance After</th><th>Notes</th></tr></thead>
-                <tbody>
-                  {list.data.map((p) => (
-                    <tr key={p._id}>
-                      <td>{date(p.date)}</td>
-                      <td>{p.shopName}</td>
-                      <td className="text-right font-medium text-green-700">{money(p.amount)}</td>
-                      <td>{p.method}</td>
-                      <td>{p.referenceNumber || '—'}</td>
-                      <td className="text-right">{money(p.remainingBalance)}</td>
-                      <td className="max-w-[12rem] truncate text-gray-500">{p.notes}</td>
+            <>
+              {/* Mobile View */}
+              <div className="divide-y divide-gray-100 sm:hidden max-h-[28rem] overflow-y-auto">
+                {list.data.map((p) => (
+                  <div key={p._id} className="p-3.5 space-y-1.5">
+                    <div className="flex items-center justify-between">
+                      <span className="font-semibold text-gray-900 text-sm">{p.shopName}</span>
+                      <span className="font-bold text-green-700 text-sm">{money(p.amount)}</span>
+                    </div>
+                    <div className="flex items-center justify-between text-xs text-gray-500">
+                      <div className="flex items-center gap-1.5">
+                        <span className="rounded bg-gray-100 px-1.5 py-0.5 text-[11px] font-medium text-gray-700">{p.method}</span>
+                        {p.referenceNumber && <span>Ref: {p.referenceNumber}</span>}
+                      </div>
+                      <span>{date(p.date)}</span>
+                    </div>
+                    <div className="flex items-center justify-between text-[11px] text-gray-400 pt-0.5">
+                      <span>Balance after: {money(p.remainingBalance)}</span>
+                      {p.notes && <span className="truncate max-w-[150px] italic">"{p.notes}"</span>}
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Desktop Table */}
+              <div className="hidden sm:block table-wrap max-h-[28rem] overflow-y-auto">
+                <table className="data-table">
+                  <thead><tr><th>Date</th><th>Shop</th><th className="text-right">Amount</th><th>Method</th><th>Reference</th><th className="text-right">Balance After</th><th>Notes</th></tr></thead>
+                  <tbody>
+                    {list.data.map((p) => (
+                      <tr key={p._id}>
+                        <td>{date(p.date)}</td>
+                        <td>{p.shopName}</td>
+                        <td className="text-right font-medium text-green-700">{money(p.amount)}</td>
+                        <td>{p.method}</td>
+                        <td>{p.referenceNumber || '—'}</td>
+                        <td className="text-right">{money(p.remainingBalance)}</td>
+                        <td className="max-w-[12rem] truncate text-gray-500">{p.notes}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                  <tfoot>
+                    <tr className="bg-primary-50 font-semibold">
+                      <td colSpan={2} className="px-4 py-3">{list.data.length} payments</td>
+                      <td className="px-4 py-3 text-right text-green-700">{money(listTotal)}</td>
+                      <td colSpan={4} />
                     </tr>
-                  ))}
-                </tbody>
-                <tfoot>
-                  <tr className="bg-primary-50 font-semibold">
-                    <td colSpan={2} className="px-4 py-3">{list.data.length} payments</td>
-                    <td className="px-4 py-3 text-right text-green-700">{money(listTotal)}</td>
-                    <td colSpan={4} />
-                  </tr>
-                </tfoot>
-              </table>
-            </div>
+                  </tfoot>
+                </table>
+              </div>
+            </>
           ) : <Empty text="No payments found." />}
         </Card>
       </div>

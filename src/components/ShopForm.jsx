@@ -65,11 +65,13 @@ export default function ShopForm({ initial, onClose, onSaved }) {
         <Field label="Address" className="sm:col-span-2"><textarea className="input" rows={2} value={f.address} onChange={set('address')} /></Field>
         <div className="sm:col-span-2">
           <span className="label">GPS Location</span>
-          <div className="flex flex-col gap-2 sm:flex-row">
-            <input className="input" placeholder="Latitude" value={f.location.lat} onChange={setLoc('lat')} />
-            <input className="input" placeholder="Longitude" value={f.location.lng} onChange={setLoc('lng')} />
-            <button type="button" className="btn-secondary shrink-0" onClick={useMyLocation} disabled={locating}>
-              <LocateFixed size={16} /> {locating ? 'Locating…' : 'Use current location'}
+          <div className="flex flex-col gap-2">
+            <div className="grid grid-cols-2 gap-2">
+              <input className="input" placeholder="Latitude" value={f.location.lat} onChange={setLoc('lat')} />
+              <input className="input" placeholder="Longitude" value={f.location.lng} onChange={setLoc('lng')} />
+            </div>
+            <button type="button" className="btn-secondary w-full sm:w-auto" onClick={useMyLocation} disabled={locating}>
+              <LocateFixed size={16} /> {locating ? 'Locating…' : 'Use current GPS location'}
             </button>
           </div>
         </div>
@@ -81,9 +83,9 @@ export default function ShopForm({ initial, onClose, onSaved }) {
             <input className="input" type="number" min="0" step="0.01" value={f.openingBalance} onChange={set('openingBalance')} placeholder="Amount the shop already owes, if any" />
           </Field>
         )}
-        <div className="flex justify-end gap-2 sm:col-span-2">
-          <button type="button" className="btn-secondary" onClick={onClose}>Cancel</button>
-          <button className="btn-primary" disabled={busy}>{busy ? 'Saving…' : 'Save Shop'}</button>
+        <div className="flex gap-2 sm:col-span-2 pt-2 sm:justify-end">
+          <button type="button" className="btn-secondary flex-1 sm:flex-none" onClick={onClose}>Cancel</button>
+          <button className="btn-primary flex-1 sm:flex-none" disabled={busy}>{busy ? 'Saving…' : 'Save Shop'}</button>
         </div>
       </form>
     </Modal>

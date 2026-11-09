@@ -41,13 +41,16 @@ export default function Reports() {
     <>
       <PageHeader title="Reports" subtitle="Filter by date and download as Excel or PDF" />
 
-      <div className="mb-4 flex flex-wrap gap-2">
+      {/* Swipeable report category pills on mobile */}
+      <div className="mb-4 flex items-center gap-2 overflow-x-auto no-scrollbar pb-1.5 -mx-3.5 px-3.5 sm:mx-0 sm:px-0 sm:flex-wrap">
         {REPORTS.map((x) => (
           <button
             key={x.id}
             onClick={() => setReportId(x.id)}
-            className={`rounded-full border px-3 py-1.5 text-sm transition ${
-              x.id === reportId ? 'border-primary-700 bg-primary-700 text-white' : 'border-gray-300 bg-white text-gray-700 hover:border-primary-300'
+            className={`shrink-0 rounded-full border px-3.5 py-1.5 text-xs sm:text-sm font-medium transition active:scale-95 ${
+              x.id === reportId
+                ? 'border-primary-700 bg-primary-700 text-white shadow-xs'
+                : 'border-gray-200 bg-white text-gray-700 hover:border-primary-300'
             }`}
           >
             {x.label}
@@ -58,24 +61,26 @@ export default function Reports() {
       <Card
         title={r.label}
         actions={
-          <div className="flex gap-2">
+          <div className="flex gap-1.5">
             <button className="btn-secondary px-2.5 py-1.5 text-xs" disabled={!data?.rows.length} onClick={() => exportExcel(exportArgs)}>
-              <FileSpreadsheet size={14} /> Excel
+              <FileSpreadsheet size={14} /> <span className="hidden xs:inline">Excel</span>
             </button>
             <button className="btn-secondary px-2.5 py-1.5 text-xs" disabled={!data?.rows.length} onClick={() => exportPdf(exportArgs)}>
-              <FileText size={14} /> PDF
+              <FileText size={14} /> <span className="hidden xs:inline">PDF</span>
             </button>
           </div>
         }
       >
         {r.dated && (
-          <div className="flex flex-wrap items-end gap-3 border-b border-gray-100 p-4">
-            <label className="block"><span className="label">From</span><input type="date" className="input" value={range.from} onChange={(e) => setRange({ ...range, from: e.target.value })} /></label>
-            <label className="block"><span className="label">To</span><input type="date" className="input" value={range.to} onChange={(e) => setRange({ ...range, to: e.target.value })} /></label>
-            <div className="flex gap-2 pb-0.5">
-              <button className="btn-secondary px-2.5 py-1.5 text-xs" onClick={() => setRange({ from: isoDay(), to: isoDay() })}>Today</button>
-              <button className="btn-secondary px-2.5 py-1.5 text-xs" onClick={() => setRange({ from: firstOfMonth(), to: isoDay() })}>This month</button>
-              <button className="btn-secondary px-2.5 py-1.5 text-xs" onClick={() => setRange({ from: '', to: '' })}>All time</button>
+          <div className="flex flex-col gap-3 border-b border-gray-100 p-3.5 sm:p-4 sm:flex-row sm:items-end">
+            <div className="grid grid-cols-2 gap-2 flex-1">
+              <label className="block"><span className="label">From</span><input type="date" className="input" value={range.from} onChange={(e) => setRange({ ...range, from: e.target.value })} /></label>
+              <label className="block"><span className="label">To</span><input type="date" className="input" value={range.to} onChange={(e) => setRange({ ...range, to: e.target.value })} /></label>
+            </div>
+            <div className="flex gap-1.5">
+              <button className="btn-secondary flex-1 sm:flex-none px-2.5 py-1.5 text-xs" onClick={() => setRange({ from: isoDay(), to: isoDay() })}>Today</button>
+              <button className="btn-secondary flex-1 sm:flex-none px-2.5 py-1.5 text-xs" onClick={() => setRange({ from: firstOfMonth(), to: isoDay() })}>This month</button>
+              <button className="btn-secondary flex-1 sm:flex-none px-2.5 py-1.5 text-xs" onClick={() => setRange({ from: '', to: '' })}>All time</button>
             </div>
           </div>
         )}

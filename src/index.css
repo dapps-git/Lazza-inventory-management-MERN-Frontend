@@ -14,28 +14,28 @@
 
 @layer components {
   .input {
-    @apply w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 outline-none transition focus:border-primary-600 focus:ring-2 focus:ring-primary-100 disabled:bg-gray-100;
+    @apply w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 sm:py-2 text-base sm:text-sm text-gray-900 outline-none transition focus:border-primary-600 focus:ring-2 focus:ring-primary-100 disabled:bg-gray-100;
   }
   .label {
-    @apply mb-1 block text-xs font-medium text-gray-600;
+    @apply mb-1.5 sm:mb-1 block text-xs font-medium text-gray-600;
   }
   .btn {
-    @apply inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition disabled:cursor-not-allowed disabled:opacity-60;
+    @apply inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2.5 sm:py-2 text-sm font-medium transition active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60 disabled:active:scale-100;
   }
   .btn-primary {
-    @apply inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition disabled:cursor-not-allowed disabled:opacity-60 bg-primary-700 text-white hover:bg-primary-800;
+    @apply inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2.5 sm:py-2 text-sm font-medium transition active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60 disabled:active:scale-100 bg-primary-700 text-white hover:bg-primary-800 shadow-sm;
   }
   .btn-secondary {
-    @apply inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition disabled:cursor-not-allowed disabled:opacity-60 border border-gray-300 bg-white text-gray-700 hover:bg-gray-50;
+    @apply inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2.5 sm:py-2 text-sm font-medium transition active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60 disabled:active:scale-100 border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 shadow-sm;
   }
   .btn-danger {
-    @apply inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition disabled:cursor-not-allowed disabled:opacity-60 bg-red-600 text-white hover:bg-red-700;
+    @apply inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2.5 sm:py-2 text-sm font-medium transition active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60 disabled:active:scale-100 bg-red-600 text-white hover:bg-red-700 shadow-sm;
   }
   .card {
     @apply rounded-xl border border-gray-200 bg-white shadow-sm;
   }
   .table-wrap {
-    @apply overflow-x-auto;
+    @apply overflow-x-auto -mx-4 sm:mx-0;
   }
   .data-table {
     @apply w-full text-left text-sm;
@@ -52,8 +52,17 @@
   .badge {
     @apply inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium;
   }
+  /* Hide scrollbar for clean horizontal pill tabs on mobile */
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
 }
 
 body {
-  @apply bg-gray-100 font-sans text-gray-900 antialiased;
+  @apply bg-gray-100 font-sans text-gray-900 antialiased selection:bg-primary-100 selection:text-primary-800;
+  -webkit-tap-highlight-color: transparent;
 }
