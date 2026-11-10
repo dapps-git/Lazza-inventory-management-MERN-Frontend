@@ -75,6 +75,17 @@ export default function Layout() {
         >
           <LogOut size={14} /> Log out
         </button>
+        <p className="mt-2.5 text-center text-[10px] text-primary-200/50">
+          Powered by{' '}
+          <a
+            href="https://www.crevionads.com/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-primary-200/80 hover:text-white hover:underline transition font-semibold"
+          >
+            Crevion Ads
+          </a>
+        </p>
       </div>
     </div>
   );
@@ -133,9 +144,24 @@ export default function Layout() {
           </Link>
         </header>
 
-        <main className="mx-auto w-full max-w-7xl flex-1 p-3.5 sm:p-6 pb-28 lg:pb-8">
+        <main className="mx-auto w-full max-w-7xl flex-1 p-3.5 sm:p-6 pb-20 lg:pb-6">
           <Outlet />
         </main>
+
+        {/* Global Footer */}
+        <footer className="mt-auto border-t border-gray-200/80 bg-white py-3 px-4 text-center text-xs text-gray-500 pb-20 lg:pb-3 print:hidden">
+          <p>
+            Powered by{' '}
+            <a
+              href="https://www.crevionads.com/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-semibold text-primary-700 hover:text-primary-800 hover:underline transition"
+            >
+              Crevion Ads
+            </a>
+          </p>
+        </footer>
 
         {/* Mobile Bottom Navigation Bar */}
         <nav className="fixed bottom-0 inset-x-0 z-30 flex items-center justify-around border-t border-gray-200 bg-white/95 backdrop-blur px-2 py-1.5 lg:hidden print:hidden shadow-[0_-2px_10px_rgba(0,0,0,0.05)]">
