@@ -77,15 +77,25 @@ export default function NewSale() {
     const p = productById[id];
     if (!p) return;
     const unitPrice = p.price || 0;
-    const defaultSell = p.discountedPrice != null ? p.discountedPrice : unitPrice;
-    const defaultDiscount = round2(Math.max(0, unitPrice - defaultSell));
+    const defaultPct =
+      p.discountPercent != null
+        ? p.discountPercent
+        : p.discountedPrice != null && unitPrice > 0
+        ? round2(((unitPrice - p.discountedPrice) / unitPrice) * 100)
+        : 0;
+    const defaultSell =
+      p.discountedPrice != null
+        ? p.discountedPrice
+        : defaultPct > 0
+        ? round2(unitPrice * (1 - defaultPct / 100))
+        : unitPrice;
     setLines((ls) => [
       ...ls,
       {
         product: id,
         qty: '1',
         sellPrice: String(defaultSell),
-        discount: defaultDiscount > 0 ? String(defaultDiscount) : '',
+        discountPercent: defaultPct > 0 ? String(defaultPct) : '',
       },
     ]);
   };
@@ -99,15 +109,16 @@ export default function NewSale() {
     const unitPrice = p?.price || 0;
     if (val === '') {
       setLines((ls) =>
-        ls.map((l, j) => (j === i ? { ...l, discount: '', sellPrice: String(unitPrice) } : l))
+        ls.map((l, j) => (j === i ? { ...l, discountPercent: '', sellPrice: String(unitPrice) } : l))
       );
       return;
     }
-    const dVal = Number(val);
-    const validD = isNaN(dVal) ? 0 : Math.max(0, dVal);
-    const newSell = round2(Math.max(0, unitPrice - validD));
+    const pctVal = Number(val);
+    const validPct = isNaN(pctVal) ? 0 : Math.max(0, Math.min(100, pctVal));
+    const discountRupees = round2(unitPrice * (validPct / 100));
+    const newSell = round2(Math.max(0, unitPrice - discountRupees));
     setLines((ls) =>
-      ls.map((l, j) => (j === i ? { ...l, discount: val, sellPrice: String(newSell) } : l))
+      ls.map((l, j) => (j === i ? { ...l, discountPercent: val, sellPrice: String(newSell) } : l))
     );
   };
 
@@ -116,20 +127,21 @@ export default function NewSale() {
     const unitPrice = p?.price || 0;
     if (val === '') {
       setLines((ls) =>
-        ls.map((l, j) => (j === i ? { ...l, sellPrice: '', discount: '' } : l))
+        ls.map((l, j) => (j === i ? { ...l, sellPrice: '', discountPercent: '' } : l))
       );
       return;
     }
     const sVal = Number(val);
     const validS = isNaN(sVal) ? unitPrice : Math.max(0, sVal);
-    const newDiscount = round2(Math.max(0, unitPrice - validS));
+    const diff = Math.max(0, unitPrice - validS);
+    const newPct = unitPrice > 0 ? round2((diff / unitPrice) * 100) : 0;
     setLines((ls) =>
       ls.map((l, j) =>
         j === i
           ? {
               ...l,
               sellPrice: val,
-              discount: newDiscount > 0 ? String(newDiscount) : '',
+              discountPercent: newPct > 0 ? String(newPct) : '',
             }
           : l
       )
@@ -144,22 +156,28 @@ export default function NewSale() {
     const qty = Number(l.qty) || 0;
     const unitPrice = p?.price || 0;
     const sell = l.sellPrice === '' ? unitPrice : Number(l.sellPrice);
-    const discount =
-      l.discount !== '' && l.discount !== undefined
-        ? Number(l.discount)
-        : round2(Math.max(0, unitPrice - sell));
+    const discountPct =
+      l.discountPercent !== '' && l.discountPercent !== undefined
+        ? Number(l.discountPercent)
+        : unitPrice > 0 && sell < unitPrice
+        ? round2(((unitPrice - sell) / unitPrice) * 100)
+        : 0;
+    const validDiscountPct = isNaN(discountPct) ? 0 : Math.max(0, discountPct);
+    const discountRupees = round2(unitPrice * (validDiscountPct / 100));
     let problem = '';
     if (!Number.isInteger(qty) || qty < 1) problem = 'Enter quantity';
     else if (p && qty > p.quantity) problem = `Only ${p.quantity} in stock`;
     else if (!Number.isFinite(sell) || sell < 0) problem = `Price cannot be negative`;
-    else if (discount < 0) problem = `Discount cannot be negative`;
+    else if (validDiscountPct < 0 || validDiscountPct > 100) problem = `Discount % must be 0% – 100%`;
     return {
       ...l,
       p,
       qty,
       unitPrice,
       sell: isNaN(sell) ? unitPrice : sell,
-      discount: isNaN(discount) ? 0 : Math.max(0, discount),
+      discountPercent: validDiscountPct,
+      discount: discountRupees,
+      discountRupees,
       lineTotal: round2((isNaN(sell) ? unitPrice : sell) * qty),
       problem,
     };
@@ -399,23 +417,24 @@ export default function NewSale() {
                         <div>
                           <div className="flex items-center justify-between mb-1">
                             <label className="block text-[11px] font-semibold text-gray-500">Discount</label>
-                            {r.discount > 0 && r.unitPrice > 0 && (
+                            {r.discountRupees > 0 && (
                               <span className="text-[10px] font-bold text-amber-700">
-                                {Math.round((r.discount / r.unitPrice) * 100)}%
+                                -{money(r.discountRupees)}
                               </span>
                             )}
                           </div>
                           <div className="relative">
-                            <span className="absolute left-2 top-2 text-xs font-semibold text-gray-400">₹</span>
                             <input
-                              className="input h-9 pl-5 pr-1 text-xs font-bold text-amber-900 bg-amber-50/40 border-amber-200 focus:border-amber-500"
+                              className="input h-9 pr-6 pl-2.5 text-sm font-bold text-amber-900 bg-amber-50/40 border-amber-200 focus:border-amber-500 text-center"
                               type="number"
                               min="0"
-                              step="0.01"
+                              max="100"
+                              step="any"
                               placeholder="0"
-                              value={lines[i].discount ?? ''}
+                              value={lines[i].discountPercent ?? ''}
                               onChange={(e) => updateDiscount(i, e.target.value)}
                             />
+                            <span className="absolute right-2 top-2 text-xs font-bold text-amber-700 pointer-events-none">%</span>
                           </div>
                         </div>
 
@@ -424,7 +443,7 @@ export default function NewSale() {
                           <div className="relative">
                             <span className="absolute left-2 top-2 text-xs font-semibold text-gray-400">₹</span>
                             <input
-                              className="input h-9 pl-5 pr-1 text-xs font-bold text-gray-900"
+                              className="input h-9 pl-5 pr-1 text-sm font-bold text-gray-900"
                               type="number"
                               min="0"
                               step="0.01"
@@ -437,7 +456,12 @@ export default function NewSale() {
 
                       <div className="flex items-center justify-between pt-0.5 text-xs">
                         <span className="text-gray-500 font-medium">
-                          {r.qty} × {money(r.sell)} {r.discount > 0 && <span className="text-amber-700 font-semibold">(Saved {money(r.discount * r.qty)})</span>}
+                          {r.qty} × {money(r.sell)}{' '}
+                          {r.discountRupees > 0 && (
+                            <span className="text-amber-700 font-semibold">
+                              ({r.discountPercent}% off · Saved {money(r.discountRupees * r.qty)})
+                            </span>
+                          )}
                         </span>
                         <span className="font-bold text-sm text-gray-900">
                           Total: {money(r.lineTotal)}
@@ -455,7 +479,7 @@ export default function NewSale() {
                         <th>Product</th>
                         <th className="text-right">Unit Rate</th>
                         <th className="text-center w-28">Qty</th>
-                        <th className="w-32">Discount (₹)</th>
+                        <th className="w-32 text-center">Discount (%)</th>
                         <th className="w-32">Sale Rate (₹)</th>
                         <th className="text-right">Total</th>
                         <th className="w-10"></th>
@@ -504,20 +528,21 @@ export default function NewSale() {
                           </td>
                           <td>
                             <div className="relative">
-                              <span className="absolute left-2 top-1.5 text-xs font-semibold text-gray-400">₹</span>
                               <input
-                                className="input h-8 pl-5 text-xs font-bold text-amber-900 bg-amber-50/40 border-amber-200"
+                                className="input h-8 pr-5 pl-2 text-xs font-bold text-center text-amber-900 bg-amber-50/40 border-amber-200"
                                 type="number"
                                 min="0"
-                                step="0.01"
+                                max="100"
+                                step="any"
                                 placeholder="0"
-                                value={lines[i].discount ?? ''}
+                                value={lines[i].discountPercent ?? ''}
                                 onChange={(e) => updateDiscount(i, e.target.value)}
                               />
+                              <span className="absolute right-2 top-1.5 text-xs font-bold text-amber-700 pointer-events-none">%</span>
                             </div>
-                            {r.discount > 0 && r.unitPrice > 0 && (
-                              <div className="text-[10px] text-amber-700 font-semibold mt-0.5 text-right">
-                                {Math.round((r.discount / r.unitPrice) * 100)}% off
+                            {r.discountRupees > 0 && (
+                              <div className="text-[10px] text-amber-700 font-semibold mt-0.5 text-center">
+                                -{money(r.discountRupees)}/unit
                               </div>
                             )}
                           </td>
